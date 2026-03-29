@@ -1,20 +1,42 @@
-import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View } from 'react-native';
+import 'react-native-url-polyfill/auto'
+import { useState, useEffect } from 'react'
+import { View, Text } from 'react-native'
+import { supabase } from './lib/Supabase'
+import { Session } from '@supabase/supabase-js'
+import Auth from './Components/Auth'
+import Dashboard from "./Components/Dashboard";
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import "./global.css"
 
 export default function App() {
-  return (
-    <View style={styles.container}>
-      <Text>Open up App.tsx to start working on your app!</Text>
-      <StatusBar style="auto" />
-    </View>
-  );
-}
+  const [session, setSession] = useState<Session | null>(null)
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});
+  useEffect(() => {
+    // Initial load
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session)
+    })
+
+    // Listen for auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session)
+    })
+
+    // Cleanup subscription
+    return () => {
+      subscription.unsubscribe()
+    }
+  }, [])
+
+  return (
+    <View style={{ padding: 20 }}>
+      <Auth />
+    
+      {session ? (
+        <Text className="text-lg font-bold text-cyan-600">User ID: {session.user.id}</Text>
+      ) : (
+        <Text>Not logged in</Text>
+      )}
+    </View>
+  )
+}
